@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        run: dotnet build --nologo
+
+      - name: Test
+        run: dotnet test --nologo
+
+      - name: Validate sample content
+        run: dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- data/rules/act_click.json data/rules/trp_click_now.json
