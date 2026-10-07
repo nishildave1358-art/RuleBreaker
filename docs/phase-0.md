@@ -1,7 +1,7 @@
 # Phase 0 — Foundation: Completion Documentation
 
 **Status:** ✅ COMPLETE
-**Commit:** `5c6d6a5` — "Phase 0: solution scaffold, simulation core seed, test harness, CI"
+**Development history:** rebuilt as granular commits before publishing (see `git log`); foundation content spans the initial commits through "Document foundation phase completion"
 **Date:** 2026-10-08
 **Reference:** `IMPLEMENTATION_PLAN.md` §6 Phase 0
 
@@ -141,9 +141,9 @@ Windows runner, .NET 8, three steps on every push to `main` and every PR:
 
 ---
 
-## 5. Test Suite — 29 tests, all green
+## 5. Test Suite — 28 tests, all green
 
-`dotnet test` final result: **`Passed! - Failed: 0, Passed: 29, Skipped: 0, Total: 29`** (exit 0).
+`dotnet test` final result: **`Passed! - Failed: 0, Passed: 28, Skipped: 0, Total: 28`** (exit 0).
 
 | File | Tests | What they guard |
 |---|---|---|
@@ -151,7 +151,7 @@ Windows runner, .NET 8, three steps on every push to `main` and every PR:
 | `ThemeColorsTests.cs` | 3 | Exactly 9 colors in GDD order; hex ranges verbatim (NearBlack/Gold/BrightRed/Blue/Amber/Purple spot-checked); case-insensitive lookup, unknown name throws. |
 | `JsonLoaderTests.cs` | 4 | camelCase mapping; malformed JSON → descriptive `Invalid JSON` error; empty input → clear error; `Load("null")` → `RuleContentException`. |
 | `ModifierEngineTests.cs` | 4 | Action passthrough; fake-origin → `IsFake` + no directive; directive-less category → informative `Phase 1` error; null instruction → `ArgumentNullException`. |
-| `RuleSchemaValidatorTests.cs` | 17 | Valid rule clean; 6 invalid-ID cases rejected; empty text; missing Action directive; fake-origin outside Trap rejected / inside Trap allowed; `BaseDirective=None` rejected; 3 out-of-range `IntroDepth` cases; Modifier rule allowed directive-less. |
+| `RuleSchemaValidatorTests.cs` | 16 | Valid rule clean; 6 invalid-ID cases rejected; empty text; missing Action directive; fake-origin outside Trap rejected / inside Trap allowed; `BaseDirective=None` rejected; 3 out-of-range `IntroDepth` cases; Modifier rule allowed directive-less. |
 
 ### Bugs found and fixed during the test run (why the tests earn their keep)
 1. **`BaseDirective` had no default value** — record required it positionally. Fixed by defaulting to `null` (the schema genuinely allows directive-less rules for Modifier/Trigger/Memory).
