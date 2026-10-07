@@ -1,0 +1,26 @@
+# --- .NET build artifacts ---
+bin/
+obj/
+artifacts/
+publish/
+*.user
+*.suo
+
+# --- Godot 4 ---
+.godot/
+*.tmp
+export_presets.cfg
+
+# --- OS noise ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Local env / secrets (never commit) ---
+.env
+*.local.json
+
+# --- Tooling caches ---
+TestResults/
+.dotnet/
+dotnet-install.sh
