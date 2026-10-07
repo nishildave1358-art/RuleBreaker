@@ -1,0 +1,7 @@
+{
+  "id": "ACT_CLICK",
+  "category": "Action",
+  "text": "Click Coin",
+  "baseDirective": { "action": "Click" },
+  "introDepth": 1
+}
