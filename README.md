@@ -10,13 +10,14 @@ before the timer expires.
 
 ## Status
 
-**Phase 1 (Simulation Core) complete** — the Modifier Engine now resolves any
-combination of active rules to exactly one directive in strict GDD priority
-order (Ignore → Identifier → Inversion → Conflict), with rule lifecycle,
-retroactive lie, source tracking and the GDD acceptance tables covered by 81
-passing tests. Phase 0 (foundation: solution, harness, content CLI, CI) is also
-complete; the turn system and game loop are next. See `docs/phase-0.md` and
-`docs/phase-1.md`.
+**Phase 2 (Turn system, timers, game loop) complete** — the 19-step GDD core
+loop now runs as a deterministic state machine: global turn counter, per-rule
+countdowns, the response timer (level base × difficulty multiplier, streaming
+compression, 20%/10% thresholds, never zero), the R-1 no-input resolution, and
+the between-turns activation window that is always present and never skipped.
+Phase 1 (Simulation Core: the Modifier Engine) and Phase 0 (foundation) are also
+complete. 128 tests pass. See `docs/phase-0.md`, `docs/phase-1.md` and
+`docs/phase-2.md`.
 
 ## Tech Stack
 
@@ -29,7 +30,7 @@ complete; the turn system and game loop are next. See `docs/phase-0.md` and
 ## Repository Layout
 
 ```
-src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, content, theme
+src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, turn systems, content, theme
 tests/RuleBreaker.Core.Tests/  xUnit suite for the core (GDD tables + 10k-run fuzz invariant)
 tools/RuleBreaker.Tools.LevelValidator/  CLI that validates rule content
 game/                          Godot 4 project (presentation layer placeholder)
