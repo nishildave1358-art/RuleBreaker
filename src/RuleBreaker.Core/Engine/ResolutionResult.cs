@@ -41,8 +41,15 @@ public sealed record ResolutionResult(
     /// <summary>Convenience: the card is mechanically real in this turn (title act applies).</summary>
     public bool IsReal => !IsFake && !IsIgnored;
 
-    /// <summary>Convenience: a mechanical-visible fake is being interacted with (used for Source B detection).</summary>
-    public bool IsMechanicallyVisibleFake => IsFakeCurrentlyDisplayed && IsReal;
+    /// <summary>
+    /// A fake instruction is on screen and still mechanically fake: the player
+    /// reacted to something visibly displayed, so an incorrect action traces to it
+    /// (Source B, principle 25). A fake that an identifier made mechanically real
+    /// (TrustedThenReal) or one that was voided by an Ignore is not a Source B
+    /// signal.
+    /// </summary>
+    public bool IsMechanicallyVisibleFake =>
+        IsFakeCurrentlyDisplayed && !IsTrustedThenReal && !IsIgnored;
 
     /// <summary>
     /// Inversion diagnostics (plan §6 step 3). <see cref="InversionCount"/> is the

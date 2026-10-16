@@ -57,6 +57,19 @@ public sealed record ActiveRule(
         _ => false,
     };
 
+    /// <summary>
+    /// Remaining displayed instructions for a turn-scoped rule (the HUD's amber
+    /// countdown). Null for rules with no countdown. \"Do Not Click For 3 Turns\"
+    /// activated on turn 3 reads 3 / 2 / 1 on turns 3 / 4 / 5 and 0 from turn 6,
+    /// matching the GDD's own countdown table (principles 10, 11).
+    /// </summary>
+    public int? RemainingTurns(int currentTurn) => Scope switch
+    {
+        RuleScope.Turns when DurationTurns is int d => Math.Max(0, ActivatedAtTurn + d - currentTurn),
+        RuleScope.NextInstruction => currentTurn <= ActivatedAtTurn + 1 ? 1 : 0,
+        _ => null,
+    };
+
     public static ActiveRule ForNextInstruction(Instruction instruction, int activatedAtTurn) =>
         new(instruction, activatedAtTurn, RuleScope.NextInstruction);
 
