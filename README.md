@@ -10,9 +10,13 @@ before the timer expires.
 
 ## Status
 
-**Phase 0 (Foundation) complete** — solution scaffold, simulation core seed,
-test harness, content validation CLI, and CI. Development follows a phased
-implementation plan; the Modifier Engine (full rule-resolution pipeline) is next.
+**Phase 1 (Simulation Core) complete** — the Modifier Engine now resolves any
+combination of active rules to exactly one directive in strict GDD priority
+order (Ignore → Identifier → Inversion → Conflict), with rule lifecycle,
+retroactive lie, source tracking and the GDD acceptance tables covered by 81
+passing tests. Phase 0 (foundation: solution, harness, content CLI, CI) is also
+complete; the turn system and game loop are next. See `docs/phase-0.md` and
+`docs/phase-1.md`.
 
 ## Tech Stack
 
@@ -26,7 +30,7 @@ implementation plan; the Modifier Engine (full rule-resolution pipeline) is next
 
 ```
 src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, content, theme
-tests/RuleBreaker.Core.Tests/  xUnit suite for the core
+tests/RuleBreaker.Core.Tests/  xUnit suite for the core (GDD tables + 10k-run fuzz invariant)
 tools/RuleBreaker.Tools.LevelValidator/  CLI that validates rule content
 game/                          Godot 4 project (presentation layer placeholder)
 data/rules/                    Rule definitions (JSON)
