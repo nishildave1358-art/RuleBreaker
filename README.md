@@ -10,14 +10,14 @@ before the timer expires.
 
 ## Status
 
-**Phase 3 (Input & coin interaction) complete** — mouse-first gameplay input now
-resolves unambiguously into Click, DoubleClick, Hold, Swipe or deliberate NoInput,
-wired into the turn loop, with coin feedback hooks, a keyboard that is
-structurally UI-only, and the GDD's 16:9 / 1080p-minimum display spec pinned as
-the gesture coordinate space. Phase 2 (turn system, timers, game loop), Phase 1
-(Simulation Core: the Modifier Engine) and Phase 0 (foundation) are also complete.
-201 tests pass. See `docs/phase-0.md`, `docs/phase-1.md`, `docs/phase-2.md` and
-`docs/phase-3.md`.
+**Phase 4 (Rule library content) complete** — all 100 base rules are authored as
+JSON across the GDD's six categories (30/25/15/15/10/5), with exact-word Trigger
+evaluation, the Memory store→recall system, category-scoped Ignore modifiers, and
+a pool linter that enforces distribution, depth gating, copy disambiguation and
+resolvability. Phase 3 (input & coin interaction), Phase 2 (turn system, timers,
+game loop), Phase 1 (Simulation Core: the Modifier Engine) and Phase 0
+(foundation) are also complete. 235 tests pass. See `docs/phase-0.md` through
+`docs/phase-4.md`.
 
 ## Tech Stack
 
@@ -49,8 +49,9 @@ dotnet build
 # run the test suite
 dotnet test
 
-# validate rule content files
+# validate rule content files, then lint the whole 100-rule library
 dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- data/rules/*.json
+dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --library data/rules/*.json
 ```
 
 ## Design
