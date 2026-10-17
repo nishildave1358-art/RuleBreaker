@@ -1,0 +1,17 @@
+[
+  { "id": "RST_NO_CLICK", "category": "Restriction", "text": "Do Not Click", "baseDirective": { "action": "Click" }, "introDepth": 1 },
+  { "id": "RST_DO_NOT_DOUBLE", "category": "Restriction", "text": "Do Not Double Click", "baseDirective": { "action": "DoubleClick" }, "introDepth": 1 },
+  { "id": "RST_DO_NOT_HOLD", "category": "Restriction", "text": "Do Not Hold", "baseDirective": { "action": "Hold" }, "introDepth": 1 },
+  { "id": "RST_DO_NOT_SWIPE", "category": "Restriction", "text": "Do Not Swipe", "baseDirective": { "action": "Swipe" }, "introDepth": 1 },
+  { "id": "RST_NOT_CLICK_THE_COIN", "category": "Restriction", "text": "Do Not Click The Coin", "baseDirective": { "action": "Click" }, "introDepth": 1 },
+  { "id": "RST_NEVER_CLICK", "category": "Restriction", "text": "Never Click The Coin", "baseDirective": { "action": "Click" }, "introDepth": 2, "visual": { "redText": true } },
+  { "id": "RST_DO_NOT_PRESS", "category": "Restriction", "text": "Do Not Press The Coin", "baseDirective": { "action": "Click" }, "introDepth": 2 },
+  { "id": "RST_NO_HOLDING", "category": "Restriction", "text": "Do Not Hold The Coin", "baseDirective": { "action": "Hold" }, "introDepth": 2 },
+  { "id": "RST_AVOID_CLICKING", "category": "Restriction", "text": "Avoid Clicking The Coin", "baseDirective": { "action": "Click" }, "introDepth": 2 },
+  { "id": "RST_NOT_DOUBLE_TAP", "category": "Restriction", "text": "Do Not Double Tap", "baseDirective": { "action": "DoubleClick" }, "introDepth": 2 },
+  { "id": "RST_NO_DRAGGING", "category": "Restriction", "text": "Do Not Drag The Coin", "baseDirective": { "action": "Swipe" }, "introDepth": 2 },
+  { "id": "RST_DO_NOT_GRIP", "category": "Restriction", "text": "Do Not Grip The Coin", "baseDirective": { "action": "Hold" }, "introDepth": 3, "visual": { "flashing": true } },
+  { "id": "RST_DO_NOT_CLICK_TWICE", "category": "Restriction", "text": "Do Not Click Twice", "baseDirective": { "action": "DoubleClick" }, "introDepth": 3 },
+  { "id": "RST_NO_SWIPING", "category": "Restriction", "text": "Do Not Swipe The Coin", "baseDirective": { "action": "Swipe" }, "introDepth": 3 },
+  { "id": "RST_DO_NOT_TOUCH", "category": "Restriction", "text": "Do Not Touch The Coin", "baseDirective": { "action": "Click" }, "introDepth": 3 }
+]

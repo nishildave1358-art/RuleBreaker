@@ -5,84 +5,132 @@ using RuleBreaker.Core.Engine;
 using RuleBreaker.Core.Model;
 
 /// <summary>
-/// Phase 0 level/rule validator CLI — the seed of the Phase 8 authoring toolkit.
+/// Rule/level validator CLI — the seed of the Phase 8 authoring toolkit.
 /// Usage:
 ///   dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- data/rules/act_click.json
 ///   dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- data/rules/*.json
-/// Validates each rule file through the same pipeline the game uses:
-/// JSON deserialize → schema validation → engine resolvability.
-/// Exit codes: 0 = all valid, 1 = at least one file invalid.
+///   dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --library data/rules/*.json
+/// A file may contain one rule object or an array of rules. <c>--library</c> also
+/// runs the pool-wide linter (exact 30/25/15/15/10/5 distribution, copy rules,
+/// depth gating, memory coverage, resolvability).
+/// Exit codes: 0 = all valid, 1 = at least one file or the pool is invalid.
 /// </summary>
 internal static class Program
 {
     private static int Main(string[] args)
     {
-        if (args.Length == 0)
+        var libraryMode = args.Any(a => a == "--library");
+        var paths = args.Where(a => a != "--library").ToArray();
+
+        if (paths.Length == 0)
         {
-            Console.Error.WriteLine("Usage: LevelValidator <rule.json> [more.json ...]");
+            Console.Error.WriteLine("Usage: LevelValidator [--library] <rule.json> [more.json ...]");
             return 1;
         }
 
         var engine = new ModifierEngine();
+        var allRules = new List<RuleDefinition>();
         var fileCount = 0;
-        var errorCount = 0;
+        var fileErrorCount = 0;
 
-        foreach (var path in args)
+        foreach (var path in paths)
         {
             if (!File.Exists(path))
             {
                 Console.Error.WriteLine($"[ERROR] File not found: {path}");
-                errorCount++;
+                fileErrorCount++;
                 continue;
             }
 
             fileCount++;
-            var json = File.ReadAllText(path);
-            var errors = new List<string>();
 
-            if (!JsonLoader.TryLoad<RuleDefinition>(json, out var rule, out var loadErrors))
+            if (!RuleLibraryLoader.TryLoadFile(path, out var rules, out var loadErrors))
             {
-                errors.AddRange(loadErrors);
+                PrintFailure(path, loadErrors);
+                fileErrorCount++;
+                continue;
+            }
+
+            var problems = new List<string>();
+            foreach (var rule in rules)
+            {
+                var schemaErrors = RuleSchemaValidator.Validate(rule);
+                if (schemaErrors.Count > 0)
+                {
+                    problems.AddRange(schemaErrors);
+                    continue;
+                }
+
+                problems.AddRange(CheckResolvable(engine, rule));
+            }
+
+            if (problems.Count > 0)
+            {
+                PrintFailure(path, problems);
+                fileErrorCount++;
             }
             else
             {
-                errors.AddRange(RuleSchemaValidator.Validate(rule!));
-
-                // Resolvability: a real, directive-bearing rule must resolve to
-                // exactly one directive through the engine.
-                if (errors.Count == 0 && rule!.BaseDirective is not null)
-                {
-                    try
-                    {
-                        var result = engine.Resolve(rule.ToInstruction());
-                        if (!result.IsFake && result.FinalDirective is null)
-                        {
-                            errors.Add("Engine produced no directive for a real directive-bearing rule.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        errors.Add($"Engine resolution failed: {ex.Message}");
-                    }
-                }
-            }
-
-            if (errors.Count == 0)
-            {
-                Console.WriteLine($"[OK]   {path}");
-            }
-            else
-            {
-                errorCount++;
-                Console.WriteLine($"[FAIL] {path}");
-                foreach (var error in errors)
-                {
-                    Console.WriteLine($"       - {error}");
-                }
+                Console.WriteLine($"[OK]   {path} ({rules.Count} rule(s))");
+                allRules.AddRange(rules);
             }
         }
 
-        Console.WriteLine($"Checked {fileCount} file(s), {errorCount} error(s).");
-        return errorCount == 0 ? 0 : 1;
+        IReadOnlyList<string> lintErrors = libraryMode && fileErrorCount == 0
+            ? RuleLibraryLinter.Validate(allRules)
+            : Array.Empty<string>();
+
+        if (libraryMode && fileErrorCount == 0)
+        {
+            if (lintErrors.Count == 0)
+            {
+                Console.WriteLine($"[OK]   library: {allRules.Count} rules, distribution 30/25/15/15/10/5");
+            }
+            else
+            {
+                Console.WriteLine("[FAIL] library lint");
+                foreach (var error in lintErrors) Console.WriteLine($"       - {error}");
+            }
+        }
+
+        Console.WriteLine(
+            $"Checked {fileCount} file(s), {fileErrorCount} file error(s)" +
+            (libraryMode ? $", {lintErrors.Count} lint error(s)." : "."));
+
+        return fileErrorCount == 0 && lintErrors.Count == 0 ? 0 : 1;
+    }
+
+    private static IReadOnlyList<string> CheckResolvable(ModifierEngine engine, RuleDefinition rule)
+    {
+        var memory = new MemoryBank();
+        memory.Store(MemoryKeys.Number, "7");
+        memory.Store(MemoryKeys.Color, "Blue");
+        memory.Store(MemoryKeys.Symbol, "Star");
+        memory.Store(MemoryKeys.Word, "RATE");
+
+        var context = new ResolutionContext(
+            new RuleSetState(),
+            CurrentTurn: 1,
+            ScreenText: rule.TriggerWord,
+            Memory: memory,
+            ScreenValue: "7");
+
+        try
+        {
+            var result = engine.Resolve(rule.ToInstruction(), context);
+            return result.FinalDirective is null
+                ? new[] { $"Rule '{rule.Id}' resolved to no directive." }
+                : Array.Empty<string>();
+        }
+        catch (Exception ex)
+        {
+            return new[] { $"Rule '{rule.Id}' failed to resolve: {ex.Message}" };
+        }
+    }
+
+    private static void PrintFailure(string path, IReadOnlyList<string> errors)
+    {
+        Console.WriteLine($"[FAIL] {path}");
+        foreach (var error in errors) Console.WriteLine($"       - {error}");
     }
 }

@@ -83,6 +83,18 @@ public sealed class GameSession
     /// <summary>The live rule set (oldest → newest), as the Modifier Engine sees it.</summary>
     public RuleSetState Rules { get; private set; } = new();
 
+    /// <summary>
+    /// Short-term memory for Memory Rules (GDD Memory System). A store turn writes
+    /// the displayed value; later recall turns read it through the engine.
+    /// </summary>
+    public MemoryBank Memory { get; } = new();
+
+    /// <summary>Ambient on-screen text this turn — Trigger Rules exact-match against it.</summary>
+    public string? ScreenText { get; private set; }
+
+    /// <summary>The value displayed this turn that a Memory store rule records.</summary>
+    public string? ScreenValue { get; private set; }
+
     /// <summary>What the last countdown tick removed (loop step 3, principles 4, 11).</summary>
     public RuleSetTickResult? LastTick { get; private set; }
 
@@ -118,7 +130,7 @@ public sealed class GameSession
     /// instruction current (step 1). Rules that belong to it can then be activated
     /// (step 4) before the response window opens.
     /// </summary>
-    public void ShowInstruction(Instruction instruction)
+    public void ShowInstruction(Instruction instruction, string? screenText = null, string? screenValue = null)
     {
         ArgumentNullException.ThrowIfNull(instruction);
         RequirePhase(
@@ -138,6 +150,8 @@ public sealed class GameSession
             Config.Mode == PacingMode.Streaming ? _pacing.SpeedForTurn(TurnNumber) : null);
 
         Instruction = instruction;                           // step 1
+        ScreenText = screenText;
+        ScreenValue = screenValue;
         Resolution = null;
         Outcome = null;
         AutoCardCheckPending = false;
@@ -247,7 +261,13 @@ public sealed class GameSession
     {
         RequirePhase("the engine evaluates after the response window closes", TurnPhase.Evaluation);
 
-        Resolution = _engine.Resolve(Instruction!, new ResolutionContext(Rules, TurnNumber));
+        Resolution = _engine.Resolve(
+            Instruction!,
+            new ResolutionContext(Rules, TurnNumber, ScreenText, Memory, ScreenValue));
+
+        // A real Memory store turn commits its value once, before the comparison;
+        // fake/ignored stores return no write (engine contract).
+        if (Resolution.MemoryWrite is { } write) Memory.Apply(write);
 
         var requiredAction = Resolution.FinalDirective.Action;
         var finalAction = AccumulatedInput ?? CoinAction.None;

@@ -1,0 +1,6 @@
+[
+  { "id": "TRP_FREE_BONUS", "category": "Trap", "text": "FREE BONUS", "baseDirective": { "action": "Click" }, "isFakeByOrigin": true, "introDepth": 5 },
+  { "id": "TRP_TAP_FAST", "category": "Trap", "text": "TAP FAST", "baseDirective": { "action": "Click" }, "isFakeByOrigin": true, "introDepth": 5, "visual": { "flashing": true } },
+  { "id": "TRP_DOUBLE_BONUS", "category": "Trap", "text": "DOUBLE BONUS", "baseDirective": { "action": "DoubleClick" }, "isFakeByOrigin": true, "introDepth": 5 },
+  { "id": "TRP_HOLD_FOR_GOLD", "category": "Trap", "text": "HOLD FOR GOLD", "baseDirective": { "action": "Hold" }, "isFakeByOrigin": true, "introDepth": 5 }
+]

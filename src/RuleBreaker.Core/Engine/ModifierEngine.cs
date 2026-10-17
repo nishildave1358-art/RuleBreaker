@@ -81,15 +81,15 @@ public sealed class ModifierEngine
 
         var state = context.State;
         if (state is null)
-            return EmptyRuleSetResolve(instruction, context.CurrentTurn);
+            return EmptyRuleSetResolve(instruction, context);
 
-        return FullPipelineResolve(instruction, state, context.CurrentTurn);
+        return FullPipelineResolve(instruction, state, context);
     }
 
     // ── EMPTY RULE SET PATH (Phase 0 shape) ─────────────────────────────────────
     private static ResolutionResult EmptyRuleSetResolve(
         Instruction instruction,
-        int turn)
+        ResolutionContext context)
     {
         if (instruction.IsFakeByOrigin)
         {
@@ -97,22 +97,56 @@ public sealed class ModifierEngine
                 ruleId: instruction.RuleId,
                 correctDirective: Directive.NoInput,
                 visual: instruction.Visual ?? VisualMetadata.None,
-                turn: turn,
+                turn: context.CurrentTurn,
                 classifiedByRuleId: string.Empty,
                 activeSnapshot: ResolutionResult.EmptyRules);
         }
 
         var evalDir = EvaluateDirective(
-            instruction.BaseDirective, inverted: false, cardBecameFake: false, instruction);
+            instruction.BaseDirective, inverted: false, cardBecameFake: false, instruction, context);
 
         if (instruction.Category == RuleCategory.Modifier)
             evalDir = Directive.NoInput;
 
-        return ResolutionResult.Empty(
+        var result = ResolutionResult.Empty(
             ruleId: instruction.RuleId,
             finalDirective: evalDir,
             visual: instruction.Visual ?? VisualMetadata.None,
-            turn: turn);
+            turn: context.CurrentTurn);
+
+        return WithMemoryWrite(result, instruction, context);
+    }
+
+    /// <summary>
+    /// A Memory store rule records the value shown on its turn. Resolution stays
+    /// pure: the write is reported on the result and the caller applies it to its
+    /// <see cref="MemoryBank"/>. Fake or ignored cards never write. Recall rules
+    /// and non-store rules produce no write.
+    /// </summary>
+    private static ResolutionResult WithMemoryWrite(
+        ResolutionResult result,
+        Instruction instruction,
+        ResolutionContext context)
+    {
+        if (result.IsFake || result.IsIgnored) return result;
+        if (instruction.Category != RuleCategory.Memory) return result;
+        if (instruction.MemoryStoreKey is not { } key) return result;
+        if (string.IsNullOrWhiteSpace(context.ScreenValue)) return result;
+
+        return result with { MemoryWrite = new MemoryWrite(key, context.ScreenValue.Trim()) };
+    }
+
+    // ── TRIGGER CONDITION ───────────────────────────────────────────────────────
+    /// <summary>
+    /// GDD Word Trap: a trigger fires only when its exact word appears in this
+    /// turn's ambient screen text. The trigger card's own wording is excluded by
+    /// construction — <see cref="ResolutionContext.ScreenText"/> carries the other
+    /// on-screen text — so "Click When You See RATE" cannot satisfy itself.
+    /// </summary>
+    private static bool TriggerMet(Instruction instruction, ResolutionContext context)
+    {
+        var word = instruction.TriggerWord ?? instruction.BaseDirective?.Condition;
+        return word is not null && WordMatcher.Matches(word, context.ScreenText);
     }
 
     // ── 1. IGNORE (absolute; scope = exactly this instruction) ─────────────────
@@ -277,7 +311,9 @@ public sealed class ModifierEngine
         Directive? baseDirective,
         bool inverted,
         bool cardBecameFake,
-        Instruction instruction)
+        Instruction instruction,
+        ResolutionContext context,
+        bool trustedThenReal = false)
     {
         if (cardBecameFake)
             return Directive.NoInput;
@@ -302,12 +338,11 @@ public sealed class ModifierEngine
             return inverted ? Directive.NoInput : new Directive(action);
         }
 
-        // Trigger: directive active only when its exact-match condition is met
-        // (Phase 4 wires trigger words; for now, un-wired → NoInput).
+        // Trigger: directive active only when its exact word is on screen.
         if (cat == RuleCategory.Trigger)
         {
-            var condition = baseDirective?.Condition;
-            if (condition is not null && WordMatcher.Matches(condition, instruction.Text))
+            var condition = instruction.TriggerWord ?? baseDirective?.Condition;
+            if (condition is not null && TriggerMet(instruction, context))
             {
                 var action = baseDirective?.Action ?? CoinAction.Click;
                 return inverted ? Directive.NoInput : new Directive(action, condition);
@@ -315,18 +350,36 @@ public sealed class ModifierEngine
             return Directive.NoInput; // condition not met / not wired.
         }
 
-        // Memory: not yet wired (Phase 5+). Default safe "do nothing" until then.
+        // Memory: a store rule is an observation turn (do nothing while the value
+        // is recorded); a recall rule acts only when the stored value satisfies it.
         if (cat == RuleCategory.Memory)
-            return Directive.NoInput;
+        {
+            if (instruction.MemoryStoreKey is not null)
+                return Directive.NoInput;
 
-        // Trap, fake by origin: do nothing (fake). Only reachable if upstream did
-        // not mark it fake (e.g. turned real via identifier Trust inversion).
+            if (instruction.MemoryTask is { } task
+                && MemoryEvaluator.IsSatisfied(task, context.Memory))
+            {
+                var action = baseDirective?.Action ?? CoinAction.Click;
+                return inverted ? Directive.NoInput : new Directive(action, task.ToString());
+            }
+
+            return Directive.NoInput;
+        }
+
+        // Trap: fake by origin → do nothing. A trap an Identifier Rule made real
+        // (TrustedThenReal, principle 22–23) is mechanically real this turn and
+        // resolves its bait directive like any other real card.
         if (cat == RuleCategory.Trap)
         {
-            if (instruction.IsFakeByOrigin)
+            if (instruction.IsFakeByOrigin && !trustedThenReal)
                 return Directive.NoInput;
-            var action = baseDirective?.Action ?? CoinAction.Click;
-            return inverted ? Directive.NoInput : new Directive(action);
+
+            // A trusted trap with no authored bait action has nothing to follow.
+            if (baseDirective is null)
+                return Directive.NoInput;
+
+            return inverted ? Directive.NoInput : new Directive(baseDirective.Action);
         }
 
         // Unknown category: safe default.
@@ -346,12 +399,11 @@ public sealed class ModifierEngine
     private static Directive ResolveConflicts(
         Directive currentDirective,
         RuleSetState state,
-        int turn)
+        int turn,
+        ResolutionContext context)
     {
         var directiveRules = state.OrderedRules
-            .Where(r => !r.HasExpired(turn)
-                        && r.Instruction.Category is RuleCategory.Action or RuleCategory.Restriction
-                        && r.Instruction.BaseDirective is not null)
+            .Where(r => !r.HasExpired(turn) && CarriesDirectiveThisTurn(r.Instruction, context))
             .Reverse() // newest first
             .ToList();
 
@@ -369,6 +421,22 @@ public sealed class ModifierEngine
         return currentDirective;
     }
 
+    /// <summary>
+    /// Does this active rule have an opinion about this turn? Action and
+    /// Restriction rules always do; a Trigger rule only while its word is on
+    /// screen; a Memory rule only when it is a recall task whose stored value
+    /// satisfies it (store rules are observation turns, never directives).
+    /// </summary>
+    private static bool CarriesDirectiveThisTurn(Instruction rule, ResolutionContext context) => rule.Category switch
+    {
+        RuleCategory.Action or RuleCategory.Restriction => rule.BaseDirective is not null,
+        RuleCategory.Trigger => rule.BaseDirective is not null && TriggerMet(rule, context),
+        RuleCategory.Memory => rule.MemoryTask is { } task
+                               && rule.BaseDirective is not null
+                               && MemoryEvaluator.IsSatisfied(task, context.Memory),
+        _ => false,
+    };
+
     private static bool DirectivesConflict(Directive a, Directive b)
         => a.Action != b.Action;
 
@@ -376,15 +444,19 @@ public sealed class ModifierEngine
     private static ResolutionResult FullPipelineResolve(
         Instruction instruction,
         RuleSetState state,
-        int turn)
+        ResolutionContext context)
     {
+        var turn = context.CurrentTurn;
         var activeRules = state.OrderedRules
             .Where(r => !r.HasExpired(turn))
             .ToList();
 
         // 1. IGNORE (absolute; scope = exactly this instruction including another ignore).
+        // Category-scoped ignores ("Ignore Action Rules For 2 Turns") void only
+        // cards of that category; an unscoped ignore voids any type (GDD).
         var ignoreRules = activeRules
-            .Where(r => r.Instruction.ModifierSubType == ModifierSubType.Ignore)
+            .Where(r => r.Instruction.ModifierSubType == ModifierSubType.Ignore
+                        && (r.Instruction.IgnoreCategory is not { } scope || scope == instruction.Category))
             .ToList();
         if (ignoreRules.Count > 0)
         {
@@ -403,23 +475,25 @@ public sealed class ModifierEngine
         bool? cardIsFake = TryClassifyAsFakeViaIdentifiers(
             instruction, state, turn, out var fakeByRuleId);
 
-        // 4. DIRECTIVE EVALUATION.
+        // 4. DIRECTIVE EVALUATION. A trap is fake by origin unless an identifier
+        //    classified it real this turn (TrustedThenReal).
+        var trustedThenReal = instruction.IsFakeByOrigin && cardIsFake == false;
         var evaluatedDirective = EvaluateDirective(
-            instruction.BaseDirective, inverted, cardIsFake == true, instruction);
+            instruction.BaseDirective, inverted, cardIsFake == true, instruction, context, trustedThenReal);
 
         // 5. CONFLICT.
-        var finalDirective = ResolveConflicts(evaluatedDirective, state, turn);
+        var finalDirective = ResolveConflicts(evaluatedDirective, state, turn, context);
 
         // Build classification.
         bool isFakeCurrentlyDisplayed = cardIsFake ?? instruction.IsFakeByOrigin;
 
         // TrustedThenReal: a trap (fake by origin) that an identifier rule made
         // mechanically real for this turn (principles 22, 23).
-        bool isTrustedThenReal =
-            instruction.IsFakeByOrigin && cardIsFake == false;
+        var isTrustedThenReal = trustedThenReal;
 
-        return isFakeCurrentlyDisplayed
-            ? ResolutionResult.Fake(
+        if (isFakeCurrentlyDisplayed)
+        {
+            return ResolutionResult.Fake(
                 ruleId: instruction.RuleId,
                 correctDirective: finalDirective,
                 visual: instruction.Visual ?? VisualMetadata.None,
@@ -427,18 +501,22 @@ public sealed class ModifierEngine
                 classifiedByRuleId: fakeByRuleId ?? string.Empty,
                 activeSnapshot: activeRules,
                 inversionCount: inversionCount,
-                wasInvertedMechanically: anyInversionInForce)
-            : ResolutionResult.Real(
-                ruleId: instruction.RuleId,
-                finalDirective: finalDirective,
-                visual: instruction.Visual ?? VisualMetadata.None,
-                turn: turn,
-                activeSnapshot: activeRules,
-                wasInvertedMechanically: anyInversionInForce,
-                inversionCount: inversionCount,
-                matchingRules: ResolutionResult.EmptyRules,
-                trustedThenReal: isTrustedThenReal,
-                trustedThenRealByRuleId: isTrustedThenReal ? (fakeByRuleId ?? string.Empty) : null);
+                wasInvertedMechanically: anyInversionInForce);
+        }
+
+        var real = ResolutionResult.Real(
+            ruleId: instruction.RuleId,
+            finalDirective: finalDirective,
+            visual: instruction.Visual ?? VisualMetadata.None,
+            turn: turn,
+            activeSnapshot: activeRules,
+            wasInvertedMechanically: anyInversionInForce,
+            inversionCount: inversionCount,
+            matchingRules: ResolutionResult.EmptyRules,
+            trustedThenReal: isTrustedThenReal,
+            trustedThenRealByRuleId: isTrustedThenReal ? (fakeByRuleId ?? string.Empty) : null);
+
+        return WithMemoryWrite(real, instruction, context);
     }
 }
 

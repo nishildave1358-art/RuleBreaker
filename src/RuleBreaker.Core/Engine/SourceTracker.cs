@@ -29,7 +29,7 @@ public static class WordMatcher
     /// trigger word RATE. Case folding never loosens the boundary rule — RATED /
     /// RATER / PIRATE remain invalid because they are different tokens.
     /// </remarks>
-    public static bool Matches(string? triggerWord, string text)
+    public static bool Matches(string? triggerWord, string? text)
     {
         if (triggerWord is null || text is null) return false;
         if (triggerWord.Length == 0) return true; // degenerate: empty condition trivially met

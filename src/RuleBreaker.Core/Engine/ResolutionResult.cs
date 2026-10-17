@@ -36,7 +36,8 @@ public sealed record ResolutionResult(
     bool IgnoredByCascadeRule,
     bool WasInvertedMechanically,
     int InversionCount,
-    VisualMetadata InstructionVisual)
+    VisualMetadata InstructionVisual,
+    MemoryWrite? MemoryWrite = null)
 {
     /// <summary>Convenience: the card is mechanically real in this turn (title act applies).</summary>
     public bool IsReal => !IsFake && !IsIgnored;

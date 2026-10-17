@@ -66,6 +66,42 @@ public static class RuleSchemaValidator
             errors.Add($"Rule '{rule.Id}': IntroDepth must be 1–5 (progression tiers Learning→Mastery).");
         }
 
+        // ── Phase 4 params ──────────────────────────────────────────────────────
+        // Trigger word: only a Trigger rule has one, and it is one exact token.
+        if (rule.TriggerWord is not null)
+        {
+            if (rule.Category != RuleCategory.Trigger)
+                errors.Add($"Rule '{rule.Id}': TriggerWord is only valid on Trigger rules.");
+            else if (rule.TriggerWord.Length == 0 || rule.TriggerWord.Any(c => !char.IsAsciiLetterOrDigit(c)))
+                errors.Add($"Rule '{rule.Id}': TriggerWord must be a single alphanumeric token (exact-match word).");
+        }
+        else if (rule.Category == RuleCategory.Trigger)
+        {
+            errors.Add($"Rule '{rule.Id}': a Trigger rule must declare TriggerWord (exact-match condition).");
+        }
+
+        // Memory: exactly one of store-key / recall-task, and only on Memory rules.
+        var hasStore = rule.MemoryStoreKey is not null;
+        var hasTask = rule.MemoryTask is not null;
+        if ((hasStore || hasTask) && rule.Category != RuleCategory.Memory)
+        {
+            errors.Add($"Rule '{rule.Id}': MemoryStoreKey/MemoryTask are only valid on Memory rules.");
+        }
+        else if (rule.Category == RuleCategory.Memory)
+        {
+            if (hasStore == hasTask)
+                errors.Add($"Rule '{rule.Id}': a Memory rule declares exactly one of MemoryStoreKey (store) or MemoryTask (recall).");
+            if (hasStore && !Engine.MemoryKeys.All.Contains(rule.MemoryStoreKey!, StringComparer.OrdinalIgnoreCase))
+                errors.Add($"Rule '{rule.Id}': MemoryStoreKey '{rule.MemoryStoreKey}' is not one of {string.Join(", ", Engine.MemoryKeys.All)}.");
+        }
+
+        // Ignore scope applies to Ignore modifiers only.
+        if (rule.IgnoreCategory is not null
+            && (rule.Category != RuleCategory.Modifier || rule.ModifierSubType != ModifierSubType.Ignore))
+        {
+            errors.Add($"Rule '{rule.Id}': IgnoreCategory is only valid on Modifier rules with ModifierSubType Ignore.");
+        }
+
         return errors;
     }
 

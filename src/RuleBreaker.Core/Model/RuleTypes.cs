@@ -95,9 +95,26 @@ public sealed record VisualMetadata(
 }
 
 /// <summary>
-/// Data-facing definition of one base rule (JSON: camelCase). This is the seed of
-/// the 100-rule library schema; Phase 4 adds JSON params (trigger words, memory
-/// keys) without breaking this contract.
+/// The recall task a Memory Rule asks about the value stored earlier (GDD Memory
+/// System: "Click If Number Was Odd", "Click If Color Was Blue", "Click If Symbol
+/// Was Not Star"). Values live in <see cref="MemoryBank"/>; a task with no stored
+/// value is never satisfied, so an untaught memory can never fire.
+/// </summary>
+public enum MemoryTask
+{
+    NumberIsOdd,
+    NumberIsEven,
+    ColorIsBlue,
+    SymbolIsStar,
+    SymbolIsNotStar,
+    WordIsRate,
+}
+
+/// <summary>
+/// Data-facing definition of one base rule (JSON: camelCase). This is the
+/// 100-rule library schema (plan §5.1): directives, visual metadata,
+/// progression depth, plus the Phase 4 params — trigger word, memory store key /
+/// recall task, and the category an Ignore modifier is scoped to.
 /// </summary>
 public sealed record RuleDefinition(
     string Id,
@@ -110,7 +127,12 @@ public sealed record RuleDefinition(
     InversionKind? InversionKind = null,
     IdentifierMode? IdentifierMode = null,
     VisualMetadata? Visual = null,
-    int? SelfDurationTurns = null)
+    int? SelfDurationTurns = null,
+    string? TriggerWord = null,
+    string? MemoryStoreKey = null,
+    MemoryTask? MemoryTask = null,
+    RuleCategory? IgnoreCategory = null,
+    RuleScope? DefaultScope = null)
 {
     /// <summary>
     /// Runtime view of this rule as a displayed instruction. Scope/duration
@@ -118,8 +140,19 @@ public sealed record RuleDefinition(
     /// not carried on the displayed card.
     /// </summary>
     public Instruction ToInstruction() => new(
-        Id, Category, Text, BaseDirective, IsFakeByOrigin, ModifierSubType,
-        InversionKind, IdentifierMode, Visual);
+        Id,
+        Category,
+        Text,
+        BaseDirective,
+        IsFakeByOrigin,
+        ModifierSubType,
+        InversionKind,
+        IdentifierMode,
+        Visual,
+        TriggerWord,
+        MemoryStoreKey,
+        MemoryTask,
+        IgnoreCategory);
 }
 
 /// <summary>
@@ -136,4 +169,8 @@ public sealed record Instruction(
     ModifierSubType? ModifierSubType = null,
     InversionKind? InversionKind = null,
     IdentifierMode? IdentifierMode = null,
-    VisualMetadata? Visual = null);
+    VisualMetadata? Visual = null,
+    string? TriggerWord = null,
+    string? MemoryStoreKey = null,
+    MemoryTask? MemoryTask = null,
+    RuleCategory? IgnoreCategory = null);

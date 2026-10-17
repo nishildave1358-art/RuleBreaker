@@ -1,0 +1,12 @@
+[
+  { "id": "MEM_REMEMBER_NUMBER", "category": "Memory", "text": "Remember The Number", "memoryStoreKey": "number", "defaultScope": "NextInstruction", "introDepth": 4, "visual": { "borderBlue": true } },
+  { "id": "MEM_REMEMBER_COLOR", "category": "Memory", "text": "Remember The Color", "memoryStoreKey": "color", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_REMEMBER_SYMBOL", "category": "Memory", "text": "Remember The Symbol", "memoryStoreKey": "symbol", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_REMEMBER_WORD", "category": "Memory", "text": "Remember The Word", "memoryStoreKey": "word", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_CLICK_ODD", "category": "Memory", "text": "Click If The Number Was Odd", "baseDirective": { "action": "Click" }, "memoryTask": "NumberIsOdd", "defaultScope": "NextInstruction", "introDepth": 4, "visual": { "flashing": true } },
+  { "id": "MEM_HOLD_EVEN", "category": "Memory", "text": "Hold If The Number Was Even", "baseDirective": { "action": "Hold" }, "memoryTask": "NumberIsEven", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_CLICK_BLUE", "category": "Memory", "text": "Click If The Color Was Blue", "baseDirective": { "action": "Click" }, "memoryTask": "ColorIsBlue", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_CLICK_NOT_STAR", "category": "Memory", "text": "Click If The Symbol Was Not Star", "baseDirective": { "action": "Click" }, "memoryTask": "SymbolIsNotStar", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_HOLD_STAR", "category": "Memory", "text": "Hold If The Symbol Was Star", "baseDirective": { "action": "Hold" }, "memoryTask": "SymbolIsStar", "defaultScope": "NextInstruction", "introDepth": 4 },
+  { "id": "MEM_CLICK_RATE", "category": "Memory", "text": "Click If The Word Was RATE", "baseDirective": { "action": "Click" }, "memoryTask": "WordIsRate", "defaultScope": "NextInstruction", "introDepth": 4 }
+]

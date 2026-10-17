@@ -1,0 +1,17 @@
+[
+  { "id": "TRG_CLICK_RATE", "category": "Trigger", "text": "Click When You See RATE", "baseDirective": { "action": "Click", "condition": "RATE" }, "triggerWord": "RATE", "defaultScope": "Always", "introDepth": 2 },
+  { "id": "TRG_CLICK_GOLD", "category": "Trigger", "text": "Click When You See GOLD", "baseDirective": { "action": "Click", "condition": "GOLD" }, "triggerWord": "GOLD", "defaultScope": "Always", "introDepth": 2 },
+  { "id": "TRG_HOLD_BLUE", "category": "Trigger", "text": "Hold When You See BLUE", "baseDirective": { "action": "Hold", "condition": "BLUE" }, "triggerWord": "BLUE", "defaultScope": "Always", "introDepth": 2 },
+  { "id": "TRG_SWIPE_STAR", "category": "Trigger", "text": "Swipe When You See STAR", "baseDirective": { "action": "Swipe", "condition": "STAR" }, "triggerWord": "STAR", "defaultScope": "Always", "introDepth": 2 },
+  { "id": "TRG_DOUBLE_SEVEN", "category": "Trigger", "text": "Double Click When You See SEVEN", "baseDirective": { "action": "DoubleClick", "condition": "SEVEN" }, "triggerWord": "SEVEN", "defaultScope": "Always", "introDepth": 2 },
+  { "id": "TRG_CLICK_RED", "category": "Trigger", "text": "Click If RED Appears", "baseDirective": { "action": "Click", "condition": "RED" }, "triggerWord": "RED", "defaultScope": "Always", "introDepth": 3, "visual": { "borderBlue": true } },
+  { "id": "TRG_CLICK_MIRROR", "category": "Trigger", "text": "Click When The Word MIRROR Appears", "baseDirective": { "action": "Click", "condition": "MIRROR" }, "triggerWord": "MIRROR", "defaultScope": "Always", "introDepth": 3 },
+  { "id": "TRG_HOLD_ANCHOR", "category": "Trigger", "text": "Hold When You See ANCHOR", "baseDirective": { "action": "Hold", "condition": "ANCHOR" }, "triggerWord": "ANCHOR", "defaultScope": "Always", "introDepth": 3, "visual": { "animated": true } },
+  { "id": "TRG_SWIPE_PULSE", "category": "Trigger", "text": "Swipe When You See PULSE", "baseDirective": { "action": "Swipe", "condition": "PULSE" }, "triggerWord": "PULSE", "defaultScope": "Always", "introDepth": 3 },
+  { "id": "TRG_DOUBLE_FLASH", "category": "Trigger", "text": "Double Click When You See FLASH", "baseDirective": { "action": "DoubleClick", "condition": "FLASH" }, "triggerWord": "FLASH", "defaultScope": "Always", "introDepth": 3 },
+  { "id": "TRG_CLICK_SILENCE", "category": "Trigger", "text": "Click When You See SILENCE", "baseDirective": { "action": "Click", "condition": "SILENCE" }, "triggerWord": "SILENCE", "defaultScope": "Always", "introDepth": 3 },
+  { "id": "TRG_HOLD_ECHO", "category": "Trigger", "text": "Hold When You See ECHO", "baseDirective": { "action": "Hold", "condition": "ECHO" }, "triggerWord": "ECHO", "defaultScope": "Always", "introDepth": 3 },
+  { "id": "TRG_CLICK_CROWN", "category": "Trigger", "text": "Click When You See CROWN", "baseDirective": { "action": "Click", "condition": "CROWN" }, "triggerWord": "CROWN", "defaultScope": "Always", "introDepth": 4 },
+  { "id": "TRG_SWIPE_THORN", "category": "Trigger", "text": "Swipe When You See THORN", "baseDirective": { "action": "Swipe", "condition": "THORN" }, "triggerWord": "THORN", "defaultScope": "Always", "introDepth": 4 },
+  { "id": "TRG_DOUBLE_LANTERN", "category": "Trigger", "text": "Double Click When You See LANTERN", "baseDirective": { "action": "DoubleClick", "condition": "LANTERN" }, "triggerWord": "LANTERN", "defaultScope": "Always", "introDepth": 4 }
+]
