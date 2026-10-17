@@ -10,14 +10,14 @@ before the timer expires.
 
 ## Status
 
-**Phase 2 (Turn system, timers, game loop) complete** — the 19-step GDD core
-loop now runs as a deterministic state machine: global turn counter, per-rule
-countdowns, the response timer (level base × difficulty multiplier, streaming
-compression, 20%/10% thresholds, never zero), the R-1 no-input resolution, and
-the between-turns activation window that is always present and never skipped.
-Phase 1 (Simulation Core: the Modifier Engine) and Phase 0 (foundation) are also
-complete. 128 tests pass. See `docs/phase-0.md`, `docs/phase-1.md` and
-`docs/phase-2.md`.
+**Phase 3 (Input & coin interaction) complete** — mouse-first gameplay input now
+resolves unambiguously into Click, DoubleClick, Hold, Swipe or deliberate NoInput,
+wired into the turn loop, with coin feedback hooks, a keyboard that is
+structurally UI-only, and the GDD's 16:9 / 1080p-minimum display spec pinned as
+the gesture coordinate space. Phase 2 (turn system, timers, game loop), Phase 1
+(Simulation Core: the Modifier Engine) and Phase 0 (foundation) are also complete.
+201 tests pass. See `docs/phase-0.md`, `docs/phase-1.md`, `docs/phase-2.md` and
+`docs/phase-3.md`.
 
 ## Tech Stack
 
