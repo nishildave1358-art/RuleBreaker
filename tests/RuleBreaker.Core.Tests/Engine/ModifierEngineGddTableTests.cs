@@ -483,13 +483,16 @@ public class ModifierEngineGddTableTests
     public void WordTrap_ExactMatch_RateIsNotSubstring(string text, bool wordOnScreen, CoinAction expected)
     {
         var instruction = new Instruction(
-            "TRG_RATE", RuleCategory.Trigger, text,
+            "TRG_RATE", RuleCategory.Trigger, "Click When You See RATE",
             new Directive(CoinAction.Click, "RATE"),
-            Visual: null);
+            TriggerWord: "RATE");
 
         Assert.Equal(wordOnScreen, WordMatcher.Matches("RATE", text));
 
-        var result = new ModifierEngine().Resolve(instruction, EmptyContext);
+        // Phase 4: the condition is matched against the ambient screen text, never
+        // the trigger card's own wording.
+        var context = new ResolutionContext(new RuleSetState(), 1, ScreenText: text);
+        var result = new ModifierEngine().Resolve(instruction, context);
         Assert.Equal(expected, result.FinalDirective!.Action);
     }
 
@@ -698,13 +701,14 @@ public class ModifierEngineGddTableTests
     [Fact]
     public void TriggerCondition_WordAbsent_ResolvesToNoInputWithoutThrowing()
     {
-        // The condition model is wired (Click while RATE is on screen), but the word
-        // is not on the card → the directive does not apply → safe NoInput.
+        // The exact word RATE is not in this turn's screen text ("Rated and
+        // pirated" is a different token) → the directive does not apply.
         var instruction = new Instruction(
-            "TRG_RATE", RuleCategory.Trigger, "Rated and pirated",
+            "TRG_RATE", RuleCategory.Trigger, "Click When You See RATE",
             new Directive(CoinAction.Click, "RATE"),
-            Visual: null);
-        var result = new ModifierEngine().Resolve(instruction, EmptyContext);
+            TriggerWord: "RATE");
+        var context = new ResolutionContext(new RuleSetState(), 1, ScreenText: "Rated and pirated");
+        var result = new ModifierEngine().Resolve(instruction, context);
 
         Assert.False(result.IsFake);
         Assert.Equal(CoinAction.None, result.FinalDirective!.Action);
@@ -720,12 +724,28 @@ public class ModifierEngineGddTableTests
         var instruction = new Instruction(
             "TRG_RATE", RuleCategory.Trigger, "Click When You See RATE",
             new Directive(CoinAction.Click, "RATE"),
-            Visual: null);
-        var result = new ModifierEngine().Resolve(instruction, EmptyContext);
+            TriggerWord: "RATE");
+        var context = new ResolutionContext(new RuleSetState(), 1, ScreenText: "The word RATE glows");
+        var result = new ModifierEngine().Resolve(instruction, context);
 
         Assert.False(result.IsFake);
         Assert.Equal(CoinAction.Click, result.FinalDirective!.Action);
         Assert.Equal("RATE", result.FinalDirective.Condition);
+    }
+
+    [Fact]
+    public void TriggerCondition_DoesNotSelfSatisfyFromItsOwnCardText()
+    {
+        // The card itself reads "Click When You See RATE" but the trigger only fires
+        // from ambient screen text — otherwise every trigger would always fire.
+        var instruction = new Instruction(
+            "TRG_RATE", RuleCategory.Trigger, "Click When You See RATE",
+            new Directive(CoinAction.Click, "RATE"),
+            TriggerWord: "RATE");
+
+        var result = new ModifierEngine().Resolve(instruction, EmptyContext);
+
+        Assert.Equal(CoinAction.None, result.FinalDirective!.Action);
     }
 
     [Fact]
