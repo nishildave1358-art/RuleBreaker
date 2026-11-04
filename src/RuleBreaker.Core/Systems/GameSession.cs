@@ -19,7 +19,8 @@ public enum TurnOutcomeKind
 /// <summary>
 /// The result of one turn: what was required, what the player's final action was,
 /// which source it traces to, and whether the auto-card opportunity has to run.
-/// Penalties, combo and lives consume this in Phase 5; cards in Phase 6.
+/// The penalty flow consumes this into a <see cref="TurnSettlement"/> (Phase 5);
+/// cards decide absorption in Phase 6.
 /// </summary>
 public sealed record TurnOutcome(
     TurnOutcomeKind Kind,
@@ -52,7 +53,8 @@ public sealed record TurnOutcome(
 ///   step 11     SubmitInput / ConfirmNoInput, or Advance(...) until the timer expires
 ///   steps 12–14 ResolveEvaluation — the Modifier Engine resolves the instruction and
 ///               compares it to the player's final action; source is traced (principle 25)
-///   step 15     ResolveAutoCardCheck — the failure's card opportunity (R-8 ordering is Phase 5)
+///   step 15     ResolveAutoCardCheck — the failure's card opportunity; the run is
+///               settled here (penalty matrix, combo, lives, score — Phase 5)
 ///   steps 16–17 Activation window — always present, never skipped (principles 43–45)
 ///   step 18     TurnComplete — the gate that keeps principle 18 honest: no new
 ///               instruction until BOTH windows have fully closed
@@ -70,10 +72,27 @@ public sealed class GameSession
     public GameSession(SessionConfig? config = null)
     {
         Config = config ?? new SessionConfig();
+        Run = new RunState(Config.Difficulty);
         _pacing = new StreamingPacing(Config.TurnsPerTier);
     }
 
     public SessionConfig Config { get; }
+
+    /// <summary>
+    /// Score, combo and lives for this run (Phase 5). One settlement is applied
+    /// per turn at loop step 15, once the auto-card check has decided whether a
+    /// card absorbed the failure.
+    /// </summary>
+    public RunState Run { get; }
+
+    /// <summary>What the most recent turn did to the run (null before the first settlement).</summary>
+    public TurnSettlement? LastSettlement => Run.LastSettlement;
+
+    /// <summary>Immutable HUD state for the presentation layer (plan architecture rule 4).</summary>
+    public HudSnapshot Hud => HudSnapshot.Capture(this);
+
+    /// <summary>GDD "No Lives Remaining: Game Over" — reported by the run, not enforced by the loop.</summary>
+    public bool IsGameOver => Run.IsGameOver;
 
     public TurnPhase Phase { get; private set; } = TurnPhase.NotStarted;
 
@@ -317,6 +336,12 @@ public sealed class GameSession
         AutoCardCheckPending = false;
         if (absorbedByCardId is not null && Outcome is not null)
             Outcome = Outcome with { AbsorbedByCardId = absorbedByCardId };
+
+        // Phase 5 penalty flow: evaluate → auto-card check → settle. The card id
+        // (or its absence) is the only input Phase 6 has to supply; a non-null id
+        // means the failure cost nothing.
+        if (Outcome is not null)
+            Run.Settle(Outcome, absorbedByCardId);
 
         // The window compresses proportionally with the response window in
         // streaming, and is never zero-length (principles 45, 14).

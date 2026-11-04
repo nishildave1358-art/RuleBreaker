@@ -10,14 +10,13 @@ before the timer expires.
 
 ## Status
 
-**Phase 4 (Rule library content) complete** — all 100 base rules are authored as
-JSON across the GDD's six categories (30/25/15/15/10/5), with exact-word Trigger
-evaluation, the Memory store→recall system, category-scoped Ignore modifiers, and
-a pool linter that enforces distribution, depth gating, copy disambiguation and
-resolvability. Phase 3 (input & coin interaction), Phase 2 (turn system, timers,
-game loop), Phase 1 (Simulation Core: the Modifier Engine) and Phase 0
-(foundation) are also complete. 235 tests pass. See `docs/phase-0.md` through
-`docs/phase-4.md`.
+**Phase 5 (Evaluation, scoring, combo, lives, penalties) complete** — every turn
+now settles through the GDD penalty matrix (Source A/B × four tiers), the combo
+multipliers with 10/20/30+ milestones, three lives with game over, R-12 scoring
+and an immutable HUD snapshot, covered by 319 passing tests. Phases 0–4
+(foundation, Modifier Engine, turn loop, input, 100-rule library) are also
+complete; special cards are next. See `docs/phase-0.md` through
+`docs/phase-5.md`.
 
 ## Tech Stack
 
@@ -30,7 +29,7 @@ game loop), Phase 1 (Simulation Core: the Modifier Engine) and Phase 0
 ## Repository Layout
 
 ```
-src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, turn systems, content, theme
+src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, turn systems, scoring, content, theme
 tests/RuleBreaker.Core.Tests/  xUnit suite for the core (GDD tables + 10k-run fuzz invariant)
 tools/RuleBreaker.Tools.LevelValidator/  CLI that validates rule content
 game/                          Godot 4 project (presentation layer placeholder)
