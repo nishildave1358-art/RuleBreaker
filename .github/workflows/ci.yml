@@ -23,5 +23,10 @@ jobs:
       - name: Test
         run: dotnet test --nologo
 
-      - name: Validate sample content
-        run: dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- data/rules/act_click.json data/rules/trp_click_now.json
+      # Validates every rule file individually, then lints the whole pool
+      # (30/25/15/15/10/5 distribution, copy rules, depth gating, memory
+      # coverage, resolvability). bash because only it expands the glob before
+      # the paths reach the CLI.
+      - name: Lint the 100-rule library
+        shell: bash
+        run: dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --library data/rules/*.json
