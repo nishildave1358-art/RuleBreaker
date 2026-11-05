@@ -10,10 +10,18 @@ internal static class TestPaths
 
     public static string RulesDirectory => Path.Combine(RepoRoot, "data", "rules");
 
+    public static string CardsDirectory => Path.Combine(RepoRoot, "data", "cards");
+
     public static IReadOnlyList<RuleDefinition> LoadLibrary(out IReadOnlyList<string> errors)
     {
         var files = Directory.GetFiles(RulesDirectory, "*.json").OrderBy(f => f, StringComparer.Ordinal).ToArray();
         return RuleLibraryLoader.LoadAll(files, out errors);
+    }
+
+    public static IReadOnlyList<CardDefinition> LoadCardLibrary(out IReadOnlyList<string> errors)
+    {
+        var files = Directory.GetFiles(CardsDirectory, "*.json").OrderBy(f => f, StringComparer.Ordinal).ToArray();
+        return CardLibraryLoader.LoadAll(files, out errors);
     }
 
     private static string FindRepoRoot()

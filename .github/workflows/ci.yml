@@ -30,3 +30,7 @@ jobs:
       - name: Lint the 100-rule library
         shell: bash
         run: dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --library data/rules/*.json
+
+      - name: Lint the Special Card library
+        shell: bash
+        run: dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --cards data/cards/*.json

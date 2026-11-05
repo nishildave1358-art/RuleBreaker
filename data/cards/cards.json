@@ -1,0 +1,77 @@
+[
+  {
+    "id": "CRD_JOKER",
+    "name": "Joker",
+    "activation": "Auto",
+    "effect": "Joker",
+    "rarity": "Common",
+    "text": "Absorbs one incorrect action. Does not cover a timer expiry.",
+    "visualCue": "Gold flash — MISTAKE CANCELLED"
+  },
+  {
+    "id": "CRD_SHIELD",
+    "name": "Shield",
+    "activation": "Auto",
+    "effect": "Shield",
+    "rarity": "Rare",
+    "text": "Absorbs one failure of any kind, including a timer expiry.",
+    "visualCue": "Blue pulse — PROTECTED"
+  },
+  {
+    "id": "CRD_FREEZE",
+    "name": "Freeze",
+    "activation": "Manual",
+    "effect": "Freeze",
+    "rarity": "Common",
+    "text": "No new rules for 3 turns. The turn counter continues.",
+    "durationTurns": 3,
+    "visualCue": "Clock-freeze — the instruction stream halts"
+  },
+  {
+    "id": "CRD_CHAOS",
+    "name": "Chaos",
+    "activation": "Manual",
+    "effect": "Chaos",
+    "rarity": "Common",
+    "text": "A random rule from the pool becomes active.",
+    "visualCue": "Purple ripple — a random card materializes"
+  },
+  {
+    "id": "CRD_MIRROR",
+    "name": "Mirror",
+    "activation": "Manual",
+    "effect": "Mirror",
+    "rarity": "Common",
+    "text": "The previous rule activates again with a fresh duration.",
+    "visualCue": "Card echo — the previous rule duplicates back"
+  },
+  {
+    "id": "CRD_ECHO",
+    "name": "Echo",
+    "activation": "Manual",
+    "effect": "Echo",
+    "rarity": "Rare",
+    "text": "Restores a specific past rule. The only way back for a dead rule.",
+    "visualCue": "Purple time-rewind shimmer"
+  },
+  {
+    "id": "CRD_TIME_WARP",
+    "name": "Time Warp",
+    "activation": "Manual",
+    "effect": "TimeWarp",
+    "rarity": "Common",
+    "text": "The next 5 turns run on shorter timers. The difficulty multiplier still applies.",
+    "durationTurns": 5,
+    "timerFactor": 0.6,
+    "visualCue": "Speed lines intensify — the timer bar compresses"
+  },
+  {
+    "id": "CRD_RULE_BOMB",
+    "name": "Rule Bomb",
+    "activation": "Manual",
+    "effect": "RuleBomb",
+    "rarity": "Rare",
+    "text": "Removes one random active rule. Can remove an Identifier Rule.",
+    "visualCue": "Explosive pop — a rule card shatters"
+  }
+]
