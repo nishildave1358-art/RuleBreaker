@@ -10,13 +10,14 @@ before the timer expires.
 
 ## Status
 
-**Phase 5 (Evaluation, scoring, combo, lives, penalties) complete** — every turn
-now settles through the GDD penalty matrix (Source A/B × four tiers), the combo
-multipliers with 10/20/30+ milestones, three lives with game over, R-12 scoring
-and an immutable HUD snapshot, covered by 319 passing tests. Phases 0–4
-(foundation, Modifier Engine, turn loop, input, 100-rule library) are also
-complete; special cards are next. See `docs/phase-0.md` through
-`docs/phase-5.md`.
+**Phase 6 (Special Card system) complete** — all eight cards (Joker, Shield,
+Freeze, Chaos, Mirror, Echo, Time Warp, Rule Bomb) as data, with the hybrid
+auto/manual activation model, a three-slot loadout, single-use consumption,
+unused-card returns, all four acquisition channels, the earned-currency shop and
+a save/load round trip, covered by 383 passing tests. Phases 0–5 (foundation,
+Modifier Engine, turn loop, input, 100-rule library, evaluation/scoring/penalties)
+are also complete; modes and the procedural generator are next. See
+`docs/phase-0.md` through `docs/phase-6.md`.
 
 ## Tech Stack
 
@@ -29,11 +30,12 @@ complete; special cards are next. See `docs/phase-0.md` through
 ## Repository Layout
 
 ```
-src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, turn systems, scoring, content, theme
+src/RuleBreaker.Core/          Simulation core: models, Modifier Engine, turn systems, scoring, cards, content, theme
 tests/RuleBreaker.Core.Tests/  xUnit suite for the core (GDD tables + 10k-run fuzz invariant)
-tools/RuleBreaker.Tools.LevelValidator/  CLI that validates rule content
+tools/RuleBreaker.Tools.LevelValidator/  CLI that validates rule and card content
 game/                          Godot 4 project (presentation layer placeholder)
 data/rules/                    Rule definitions (JSON)
+data/cards/                    Special Card definitions (JSON)
 docs/                          Per-phase development documentation
 ```
 
@@ -51,6 +53,9 @@ dotnet test
 # validate rule content files, then lint the whole 100-rule library
 dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- data/rules/*.json
 dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --library data/rules/*.json
+
+# lint the Special Card library (8 cards, 2 auto / 6 manual, pinned parameters)
+dotnet run --project tools/RuleBreaker.Tools.LevelValidator -- --cards data/cards/*.json
 ```
 
 ## Design
