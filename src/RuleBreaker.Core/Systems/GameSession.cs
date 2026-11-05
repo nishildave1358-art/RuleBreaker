@@ -67,7 +67,15 @@ public sealed class GameSession
 {
     private readonly ModifierEngine _engine = new();
     private readonly StreamingPacing _pacing;
+    private readonly List<ActiveRule> _activationHistory = [];
+    private readonly List<ActiveRule> _expiredRules = [];
+    private readonly List<ActiveRule> _removedRules = [];
     private bool _responseWindowExpired;
+    private int _freezeStartTurn;
+    private int _frozenThroughTurn;
+    private int _timerPressureStartTurn;
+    private int _timerPressureThroughTurn;
+    private double _timerPressureFactor = 1.0;
 
     public GameSession(SessionConfig? config = null)
     {
@@ -117,6 +125,60 @@ public sealed class GameSession
     /// <summary>What the last countdown tick removed (loop step 3, principles 4, 11).</summary>
     public RuleSetTickResult? LastTick { get; private set; }
 
+    // ── Phase 6 card hooks ──────────────────────────────────────────────────────
+    // The card system is the only client of these: Mirror needs the most recent
+    // activation, Echo needs dead rules, Rule Bomb removes a live one, Freeze
+    // gates activation, Time Warp compresses the response window.
+
+    /// <summary>Every rule activated this run, oldest → newest (loop step 4 and card plays).</summary>
+    public IReadOnlyList<ActiveRule> ActivationHistory => _activationHistory;
+
+    /// <summary>
+    /// Rules that ran out of turns (principles 4, 11). This is Echo's shop window:
+    /// principle 8 makes the Echo card the only mechanic that can bring one back.
+    /// Rules removed by a Rule Bomb are <em>not</em> here — they did not expire.
+    /// </summary>
+    public IReadOnlyList<ActiveRule> ExpiredRules => _expiredRules;
+
+    /// <summary>Rules destroyed by a Rule Bomb (principle 47), kept for diagnostics.</summary>
+    public IReadOnlyList<ActiveRule> RemovedRules => _removedRules;
+
+    /// <summary>The rule activated immediately before now — what Mirror duplicates (R-10).</summary>
+    public ActiveRule? PreviousActivatedRule =>
+        _activationHistory.Count == 0 ? null : _activationHistory[^1];
+
+    /// <summary>
+    /// True while Freeze is in force: no new rules may enter the set. Freeze starts
+    /// with the next instruction, so a second card may still be played in the same
+    /// between-turns window that Freeze was used in.
+    /// </summary>
+    public bool NewRulesFrozen =>
+        _frozenThroughTurn > 0 && TurnNumber >= _freezeStartTurn && TurnNumber <= _frozenThroughTurn;
+
+    /// <summary>
+    /// Whole frozen turns: the two full turns still to come plus a partially spent
+    /// one. At the moment Freeze is played this reads the card's full duration.
+    /// </summary>
+    public int FrozenTurnsRemaining =>
+        _frozenThroughTurn <= 0
+            ? 0
+            : Math.Max(0, _frozenThroughTurn - Math.Max(TurnNumber, _freezeStartTurn) + 1);
+
+    /// <summary>True while Time Warp compresses the response window (principle 17).</summary>
+    public bool TimerPressureActive =>
+        _timerPressureThroughTurn > 0
+        && TurnNumber >= _timerPressureStartTurn
+        && TurnNumber <= _timerPressureThroughTurn;
+
+    /// <summary>Whole turns of Time Warp still to come (0 when it is not in force).</summary>
+    public int TimerPressureTurnsRemaining =>
+        _timerPressureThroughTurn <= 0
+            ? 0
+            : Math.Max(0, _timerPressureThroughTurn - Math.Max(TurnNumber, _timerPressureStartTurn) + 1);
+
+    /// <summary>The timer multiplier in force this turn (1.0 when Time Warp is not active).</summary>
+    public double TimerPressureFactor => TimerPressureActive ? _timerPressureFactor : 1.0;
+
     /// <summary>Pacing context for the current turn (null before the first instruction).</summary>
     public TurnContext? Context { get; private set; }
 
@@ -160,6 +222,7 @@ public sealed class GameSession
         var (surviving, tick) = Rules.TickExpiry(TurnNumber); // step 3
         Rules = surviving;
         LastTick = tick;
+        _expiredRules.AddRange(tick.JustExpired); // Echo's graveyard (principle 8)
 
         Context = new TurnContext(
             TurnNumber,
@@ -194,7 +257,77 @@ public sealed class GameSession
             "rules are activated either when their instruction appears or during the between-turns activation window (principle 43)",
             TurnPhase.InstructionShown, TurnPhase.ActivationWindow);
 
+        // Freeze's whole point: the set stops growing while turns keep coming.
+        if (NewRulesFrozen)
+            throw new InvalidOperationException(
+                $"Freeze is in force for {FrozenTurnsRemaining} more turn(s): no new rules may be activated.");
+
         Rules = Rules.Activate(rule);
+        _activationHistory.Add(rule);
+    }
+
+    // ── Phase 6: card effects that mutate the turn state ────────────────────────
+    /// <summary>
+    /// Freeze: no new rules for <paramref name="turns"/> turns, counted from the
+    /// turn the card was played (so a play in turn 7's window covers 8, 9 and 10).
+    /// The turn counter itself keeps running — only activation stops.
+    /// </summary>
+    public void FreezeNewRules(int turns)
+    {
+        if (turns <= 0)
+            throw new ArgumentOutOfRangeException(nameof(turns), turns, "Freeze must last at least one turn.");
+
+        RequirePhase(
+            "Freeze is a Manual Card: it may only be played during the between-turns activation window (principle 43)",
+            TurnPhase.ActivationWindow);
+
+        // Freeze starts with the next instruction (the one the window leads into).
+        _freezeStartTurn = _frozenThroughTurn > 0 && TurnNumber >= _freezeStartTurn
+            ? _freezeStartTurn
+            : TurnNumber + 1;
+        _frozenThroughTurn = Math.Max(_frozenThroughTurn, TurnNumber + turns);
+    }
+
+    /// <summary>
+    /// Time Warp (principle 17): compress the next <paramref name="turns"/> response
+    /// windows by <paramref name="factor"/>. The difficulty multiplier is applied
+    /// first and is not redefined — Time Warp only shortens the window the turn
+    /// already had, so the turn itself never changes (principle 9).
+    /// </summary>
+    public void ApplyTimerPressure(int turns, double factor)
+    {
+        if (turns <= 0)
+            throw new ArgumentOutOfRangeException(nameof(turns), turns, "Time Warp must last at least one turn.");
+        if (factor is <= 0 or > 1)
+            throw new ArgumentOutOfRangeException(
+                nameof(factor), factor, "Time Warp only ever shortens the window, so its factor must be in (0, 1].");
+
+        RequirePhase(
+            "Time Warp is a Manual Card: it may only be played during the between-turns activation window (principle 43)",
+            TurnPhase.ActivationWindow);
+
+        // Overlapping warps do not stack multiplicatively; the stronger factor wins.
+        _timerPressureFactor = TimerPressureActive ? Math.Min(_timerPressureFactor, factor) : factor;
+        _timerPressureStartTurn = _timerPressureThroughTurn > 0 && TurnNumber >= _timerPressureStartTurn
+            ? _timerPressureStartTurn
+            : TurnNumber + 1;
+        _timerPressureThroughTurn = Math.Max(_timerPressureThroughTurn, TurnNumber + turns);
+    }
+
+    /// <summary>
+    /// Remove one active rule by position (Rule Bomb, principle 47). Identifiers are
+    /// removable like any other rule — that is the card's stated power.
+    /// </summary>
+    public ActiveRule RemoveRuleAt(int index)
+    {
+        if (index < 0 || index >= Rules.OrderedRules.Count)
+            throw new ArgumentOutOfRangeException(
+                nameof(index), index, $"There is no active rule at index {index}.");
+
+        var removed = Rules.OrderedRules[index];
+        Rules = Rules.RemoveAt(index);
+        _removedRules.Add(removed);
+        return removed;
     }
 
     // ── step 10: the response window opens ──────────────────────────────────────
@@ -209,6 +342,11 @@ public sealed class GameSession
 
         var total = TimerTable.ForTurn(
             Config.LevelBaseSeconds, Config.Difficulty, Config.Mode, StreamingSpeed);
+
+        // Time Warp compresses the window the turn already had (principle 17): the
+        // difficulty multiplier went in above, and the floor still applies.
+        if (TimerPressureActive)
+            total = TimerTable.Round(total * _timerPressureFactor);
 
         Timer = ResponseTimer.Start(total);
         AccumulatedInput = null;

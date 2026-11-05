@@ -32,6 +32,23 @@ public sealed class RuleSetState
     /// <summary>Backed-up view, ordered oldest → newest.</summary>
     public IReadOnlyList<ActiveRule> OrderedRules => _rules;
 
+    /// <summary>
+    /// Remove one rule by position, returning the surviving state (Rule Bomb,
+    /// principle 47). Removal is by position rather than id because a rule may be
+    /// in the set twice — Mirror (R-10) re-activates a rule that may still be live,
+    /// so ids are not unique within the set.
+    /// </summary>
+    public RuleSetState RemoveAt(int index)
+    {
+        if (index < 0 || index >= _rules.Count)
+            throw new ArgumentOutOfRangeException(
+                nameof(index), index, "There is no active rule at that position.");
+
+        var next = new List<ActiveRule>(_rules);
+        next.RemoveAt(index);
+        return new RuleSetState(next);
+    }
+
     public RuleSetState Activate(ActiveRule rule)
     {
         ArgumentNullException.ThrowIfNull(rule);
